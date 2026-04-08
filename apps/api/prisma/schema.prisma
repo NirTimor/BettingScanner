@@ -1,0 +1,83 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+// Betting Scan - tracks daily scan runs
+model BettingScan {
+  id            String   @id @default(uuid())
+  scanDate      DateTime @default(now()) @map("scan_date")
+  status        String // SUCCESS, FAILED
+  resultSummary String?    @map("result_summary") // Changed to String for SQLite compatibility (store JSON as string)
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@map("betting_scans")
+}
+
+// Recommendation - stores recommended bets
+model Recommendation {
+  id           String   @id @default(uuid())
+  sportKey     String   @map("sport_key")
+  eventTitle   String   @map("event_title")
+  homeTeam     String?  @map("home_team")
+  awayTeam     String?  @map("away_team")
+  commenceTime DateTime @map("commence_time")
+  marketKey    String   @map("market_key")
+  selection    String
+  odds         Decimal
+  bookmaker    String
+  analysis        String
+  confidenceScore Float?   @map("confidence_score")
+  predictionLabel String?  @map("prediction_label")
+  aiAnalysis      String?  @map("ai_analysis")
+  resultHomeScore Int?     @map("result_home_score")
+  resultAwayScore Int?     @map("result_away_score")
+  resultOutcome   String?  @map("result_outcome") // HOME, AWAY, DRAW
+  isHit           Boolean? @map("is_hit")
+  resultCheckedAt DateTime? @map("result_checked_at")
+  scanId       String?  @map("scan_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@map("recommendations")
+}
+
+model User {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  passwordHash String    @map("password_hash")
+  passwordSalt String    @map("password_salt")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  sessions     Session[]
+  passwordResets PasswordReset[]
+
+  @@map("users")
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  expiresAt DateTime @map("expires_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model PasswordReset {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  expiresAt DateTime @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("password_resets")
+}
