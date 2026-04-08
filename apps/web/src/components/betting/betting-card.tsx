@@ -526,6 +526,10 @@ const getLeagueLabel = (sportKey: string) => {
             return 'Israeli Premier League';
         case 'soccer_uefa_champs_league':
             return 'Champions League';
+        case 'soccer_uefa_europa_league':
+            return 'Europa League';
+        case 'soccer_uefa_europa_conference_league':
+            return 'Europa Conference League';
         default:
             return sportKey.replace('soccer_', '').replace(/_/g, ' ');
     }

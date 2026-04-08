@@ -27,6 +27,8 @@ export class StatsService {
         ['soccer_italy_serie_a', 'SA'],
         ['soccer_france_ligue_one', 'FL1'],
         ['soccer_uefa_champs_league', 'CL'],
+        ['soccer_uefa_europa_league', 'EL'],
+        ['soccer_uefa_europa_conference_league', 'ECL'],
     ]);
     private competitionTeamsCache = new Map<string, Array<{ id: number; name: string; shortName?: string; tla?: string }>>();
 

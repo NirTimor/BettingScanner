@@ -207,6 +207,8 @@ const LEAGUE_TRANSLATIONS_HE: Record<string, string> = {
     'Ligue 1': 'ליגה 1',
     'Israeli Premier League': 'ליגת העל',
     'Champions League': 'ליגת האלופות',
+    'Europa League': 'הליגה האירופית',
+    'Europa Conference League': 'הקונפרנס ליג',
 };
 
 export const translateTeamName = (team: string, locale?: string) => {
@@ -250,6 +252,10 @@ export const getLeagueLabelFromSportKey = (sportKey: string) => {
             return 'Israeli Premier League';
         case 'soccer_uefa_champs_league':
             return 'Champions League';
+        case 'soccer_uefa_europa_league':
+            return 'Europa League';
+        case 'soccer_uefa_europa_conference_league':
+            return 'Europa Conference League';
         default:
             return sportKey.replace('soccer_', '').replace(/_/g, ' ');
     }

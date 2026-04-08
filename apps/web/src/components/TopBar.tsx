@@ -9,10 +9,8 @@ import { API_URL, TOKEN_KEY } from '@/lib/api-config';
 import { getInitials } from '@/lib/profile-utils';
 
 interface TopBarProps {
-    active?: 'betting' | 'stats' | 'settings';
+    active?: 'betting' | 'stats' | 'profile' | 'settings';
 }
-const PROFILE_NAME_KEY = 'profileName';
-const PROFILE_AVATAR_KEY = 'profileAvatar';
 
 export default function TopBar({ active = 'betting' }: TopBarProps) {
     const t = useTranslations('Nav');
@@ -38,11 +36,23 @@ export default function TopBar({ active = 'betting' }: TopBarProps) {
                 // Ignore
             }
         };
+        const fetchProfile = async () => {
+            const token = localStorage.getItem(TOKEN_KEY);
+            if (!token) return;
+            try {
+                const res = await fetch(`${API_URL}/profile/me`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+                if (!res.ok) return;
+                const data = await res.json();
+                if (data?.profile?.displayName) setProfileName(String(data.profile.displayName));
+                if (data?.profile?.avatarUrl) setAvatarUrl(String(data.profile.avatarUrl));
+            } catch {
+                // Ignore
+            }
+        };
         fetchUser();
-        const storedName = localStorage.getItem(PROFILE_NAME_KEY) || '';
-        const storedAvatar = localStorage.getItem(PROFILE_AVATAR_KEY) || '';
-        setProfileName(storedName);
-        setAvatarUrl(storedAvatar);
+        fetchProfile();
     }, []);
 
     const handleLogout = () => {
@@ -78,6 +88,15 @@ export default function TopBar({ active = 'betting' }: TopBarProps) {
                             }`}
                         >
                             {t('stats')}
+                        </Link>
+                        <Link
+                            href={`/${locale}/profile`}
+                            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${active === 'profile'
+                                ? 'bg-blue-600 text-white'
+                                : 'text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800'
+                            }`}
+                        >
+                            {t('profile')}
                         </Link>
                         <Link
                             href={`/${locale}/settings`}
@@ -119,6 +138,12 @@ export default function TopBar({ active = 'betting' }: TopBarProps) {
                                 <div className="px-3 pb-2 text-sm font-medium text-zinc-800 dark:text-zinc-100 truncate">
                                     {displayName}
                                 </div>
+                                <Link
+                                    href={`/${locale}/profile`}
+                                    className="block w-full text-left px-3 py-2 rounded-lg text-sm text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                                >
+                                    {t('profile')}
+                                </Link>
                                 <Link
                                     href={`/${locale}/settings`}
                                     className="block w-full text-left px-3 py-2 rounded-lg text-sm text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800"

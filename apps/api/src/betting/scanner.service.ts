@@ -44,6 +44,8 @@ export class ScannerService {
                 'soccer_israel_ligat_ha_al',
                 'soccer_israel_ligat_al',
                 'soccer_uefa_champs_league',
+                'soccer_uefa_europa_league',
+                'soccer_uefa_europa_conference_league',
             ];
 
             const recommendations: any[] = [];

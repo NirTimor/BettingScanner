@@ -6,16 +6,11 @@ import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import TopBar from '@/components/TopBar';
 import { getLeagueLabelFromSportKey, translateLeagueLabel } from '@/lib/team-translations';
-import { TOKEN_KEY } from '@/lib/api-config';
+import { API_URL, TOKEN_KEY } from '@/lib/api-config';
 import { getInitials } from '@/lib/profile-utils';
 
 const MAX_AVATAR_SIZE_BYTES = 1024 * 1024; // 1MB
 const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png'];
-
-const STORAGE_KEY = 'preferredSports';
-const ONLY_PREFERRED_KEY = 'preferredSportsOnly';
-const PROFILE_NAME_KEY = 'profileName';
-const PROFILE_AVATAR_KEY = 'profileAvatar';
 
 const SPORT_KEYS = [
     'soccer_epl',
@@ -24,7 +19,10 @@ const SPORT_KEYS = [
     'soccer_italy_serie_a',
     'soccer_france_ligue_one',
     'soccer_uefa_champs_league',
+    'soccer_uefa_europa_league',
+    'soccer_uefa_europa_conference_league',
     'soccer_israel_ligat_ha_al',
+    'soccer_israel_ligat_al',
 ];
 
 export default function SettingsPage() {
@@ -46,19 +44,27 @@ export default function SettingsPage() {
             router.replace(`/${locale}/login`);
             return;
         }
-        const stored = localStorage.getItem(STORAGE_KEY);
-        if (stored) {
+        const fetchProfile = async () => {
             try {
-                const parsed = JSON.parse(stored);
-                if (Array.isArray(parsed)) setPreferred(parsed);
+                const res = await fetch(`${API_URL}/profile/me`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+                if (res.status === 401) {
+                    localStorage.removeItem(TOKEN_KEY);
+                    router.replace(`/${locale}/login`);
+                    return;
+                }
+                if (!res.ok) return;
+                const data = await res.json();
+                setPreferred(Array.isArray(data?.preferences?.preferredSports) ? data.preferences.preferredSports : []);
+                setOnlyPreferred(Boolean(data?.preferences?.onlyPreferred));
+                setProfileName(String(data?.profile?.displayName || ''));
+                setAvatarUrl(String(data?.profile?.avatarUrl || ''));
             } catch {
-                // ignore
+                // ignore: offline / API down
             }
-        }
-        const storedOnly = localStorage.getItem(ONLY_PREFERRED_KEY);
-        if (storedOnly === 'true') setOnlyPreferred(true);
-        setProfileName(localStorage.getItem(PROFILE_NAME_KEY) || '');
-        setAvatarUrl(localStorage.getItem(PROFILE_AVATAR_KEY) || '');
+        };
+        fetchProfile();
     }, [locale, router]);
 
     const toggleSport = (sportKey: string) => {
@@ -98,12 +104,39 @@ export default function SettingsPage() {
     };
 
     const handleSave = () => {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(preferred));
-        localStorage.setItem(ONLY_PREFERRED_KEY, String(onlyPreferred));
-        localStorage.setItem(PROFILE_NAME_KEY, profileName.trim());
-        localStorage.setItem(PROFILE_AVATAR_KEY, avatarUrl.trim());
-        setSaved(true);
-        setTimeout(() => setSaved(false), 1500);
+        const token = localStorage.getItem(TOKEN_KEY);
+        if (!token) {
+            router.replace(`/${locale}/login`);
+            return;
+        }
+        const run = async () => {
+            try {
+                const res = await fetch(`${API_URL}/profile/me`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${token}`,
+                    },
+                    body: JSON.stringify({
+                        displayName: profileName.trim(),
+                        avatarUrl: avatarUrl.trim(),
+                        preferredSports: preferred,
+                        onlyPreferred,
+                    }),
+                });
+                if (res.status === 401) {
+                    localStorage.removeItem(TOKEN_KEY);
+                    router.replace(`/${locale}/login`);
+                    return;
+                }
+                if (!res.ok) return;
+                setSaved(true);
+                setTimeout(() => setSaved(false), 1500);
+            } catch {
+                // ignore
+            }
+        };
+        run();
     };
 
     return (

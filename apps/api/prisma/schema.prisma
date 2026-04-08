@@ -27,7 +27,9 @@ model Recommendation {
   awayTeam     String?  @map("away_team")
   commenceTime DateTime @map("commence_time")
   marketKey    String   @map("market_key")
+  selectionCode String? @map("selection_code") // HOME/DRAW/AWAY/OVER/UNDER/YES/NO
   selection    String
+  line         Float?   @map("line") // totals/spreads points (e.g., 2.5)
   odds         Decimal
   bookmaker    String
   analysis        String
@@ -53,8 +55,50 @@ model User {
   createdAt    DateTime  @default(now()) @map("created_at")
   sessions     Session[]
   passwordResets PasswordReset[]
+  profile      UserProfile?
+  preferences  UserPreference?
+  followedTeams FollowedTeam[]
 
   @@map("users")
+}
+
+model UserProfile {
+  id        String   @id @default(uuid())
+  userId    String   @unique @map("user_id")
+  displayName String? @map("display_name")
+  avatarUrl  String?  @map("avatar_url") // Can be data: URL or remote URL
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_profiles")
+}
+
+model UserPreference {
+  id           String   @id @default(uuid())
+  userId       String   @unique @map("user_id")
+  preferredSportsJson String @default("[]") @map("preferred_sports_json")
+  onlyPreferred Boolean @default(false) @map("only_preferred")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_preferences")
+}
+
+model FollowedTeam {
+  id            String   @id @default(uuid())
+  userId        String   @map("user_id")
+  teamName      String   @map("team_name")
+  normalizedName String  @map("normalized_name")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, normalizedName])
+  @@map("followed_teams")
 }
 
 model Session {
