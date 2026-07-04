@@ -31,6 +31,8 @@ interface RecommendationProps {
         homeRecent?: { form: string; matches: Array<{ date: string; opponent: string; scored: number; conceded: number; isHome: boolean; result: string }> } | null;
         awayRecent?: { form: string; matches: Array<{ date: string; opponent: string; scored: number; conceded: number; isHome: boolean; result: string }> } | null;
         h2hRecent?: Array<{ homeName: string; awayName: string; homeScore: number; awayScore: number; winner: string | null }> | null;
+        sources?: { home?: string; away?: string; h2h?: string };
+        reasons?: { home?: string | null; away?: string | null; h2h?: string | null };
         status?: 'loading' | 'ready' | 'error';
     };
 }
