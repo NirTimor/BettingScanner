@@ -197,6 +197,35 @@ const TEAM_TRANSLATIONS_HE: Record<string, string> = {
     'Hapoel Ashdod': 'מ.ס. אשדוד',
     'Ashdod': 'מ.ס. אשדוד',
     'Ironi Kiryat Shmona': 'עירוני קריית שמונה',
+
+    // FIFA World Cup national teams
+    'Brazil': 'ברזיל',
+    'Argentina': 'ארגנטינה',
+    'France': 'צרפת',
+    'England': 'אנגליה',
+    'Spain': 'ספרד',
+    'Germany': 'גרמניה',
+    'Portugal': 'פורטוגל',
+    'Netherlands': 'הולנד',
+    'Belgium': 'בלגיה',
+    'Croatia': 'קרואטיה',
+    'Italy': 'איטליה',
+    'Uruguay': 'אורוגוואי',
+    'Colombia': 'קולומביה',
+    'Mexico': 'מקסיקו',
+    'USA': 'ארה״ב',
+    'United States': 'ארה״ב',
+    'Canada': 'קנדה',
+    'Japan': 'יפן',
+    'South Korea': 'דרום קוריאה',
+    'Korea Republic': 'דרום קוריאה',
+    'Morocco': 'מרוקו',
+    'Switzerland': 'שווייץ',
+    'Ukraine': 'אוקראינה',
+    'Austria': 'אוסטריה',
+    'Australia': 'אוסטרליה',
+    'Nigeria': 'ניגריה',
+    'Egypt': 'מצרים',
 };
 
 const LEAGUE_TRANSLATIONS_HE: Record<string, string> = {
@@ -209,6 +238,7 @@ const LEAGUE_TRANSLATIONS_HE: Record<string, string> = {
     'Champions League': 'ליגת האלופות',
     'Europa League': 'הליגה האירופית',
     'Europa Conference League': 'הקונפרנס ליג',
+    'FIFA World Cup': 'מונדיאל',
 };
 
 export const translateTeamName = (team: string, locale?: string) => {
@@ -256,6 +286,8 @@ export const getLeagueLabelFromSportKey = (sportKey: string) => {
             return 'Europa League';
         case 'soccer_uefa_europa_conference_league':
             return 'Europa Conference League';
+        case 'soccer_fifa_world_cup':
+            return 'FIFA World Cup';
         default:
             return sportKey.replace('soccer_', '').replace(/_/g, ' ');
     }

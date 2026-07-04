@@ -5,8 +5,10 @@
     "scripts": {
         "dev": "nest start --watch",
         "build": "nest build",
+        "test": "node -r ts-node/register src/betting/scanner.service.spec.ts",
         "start": "nest start",
-        "start:prod": "node dist/main"
+        "start:prod": "node dist/main",
+        "postinstall": "prisma generate"
     },
     "dependencies": {
         "@nestjs/common": "^10.0.0",

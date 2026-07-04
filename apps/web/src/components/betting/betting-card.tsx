@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { translateAnalysis, translateEventTitle, translateInsight, translateLeagueLabel, translatePredictionLabel, translateSelection, translateTeamName } from '@/lib/team-translations';
+import { formatShortDate } from '@/lib/date-format';
+import { getLeagueLabelFromSportKey, translateAnalysis, translateEventTitle, translateInsight, translateLeagueLabel, translatePredictionLabel, translateSelection, translateTeamName } from '@/lib/team-translations';
 
 interface RecommendationProps {
     locale?: string;
@@ -64,7 +65,7 @@ export const BettingCard = ({
     const [enterAway, setEnterAway] = useState('');
     const [savingResult, setSavingResult] = useState(false);
     const [resultSavedFlash, setResultSavedFlash] = useState(false);
-    const leagueLabel = translateLeagueLabel(getLeagueLabel(sportKey), locale);
+    const leagueLabel = translateLeagueLabel(getLeagueLabelFromSportKey(sportKey), locale);
     const displayEventTitle = translateEventTitle(eventTitle, locale);
     const displaySelection = translateSelection(selection, locale);
     const isHebrew = locale === 'he';
@@ -247,7 +248,7 @@ export const BettingCard = ({
                 <div className="flex justify-between items-start mb-4">
                     <div className="flex flex-wrap gap-2">
                         <span className="text-xs font-medium text-zinc-500 bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded">
-                            {new Date(commenceTime).toLocaleDateString()}
+                            {formatShortDate(new Date(commenceTime), locale ?? 'en')}
                         </span>
                         <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded">
                             {leagueLabel}
@@ -506,31 +507,4 @@ export const BettingCard = ({
             </div>
         </div>
     );
-};
-
-const getLeagueLabel = (sportKey: string) => {
-    switch (sportKey) {
-        case 'soccer_epl':
-            return 'Premier League';
-        case 'soccer_germany_bundesliga':
-            return 'Bundesliga';
-        case 'soccer_italy_serie_a':
-            return 'Serie A';
-        case 'soccer_spain_la_liga':
-            return 'La Liga';
-        case 'soccer_france_ligue_one':
-            return 'Ligue 1';
-        case 'soccer_israel_ligat_ha_al':
-            return 'Israeli Premier League';
-        case 'soccer_israel_ligat_al':
-            return 'Israeli Premier League';
-        case 'soccer_uefa_champs_league':
-            return 'Champions League';
-        case 'soccer_uefa_europa_league':
-            return 'Europa League';
-        case 'soccer_uefa_europa_conference_league':
-            return 'Europa Conference League';
-        default:
-            return sportKey.replace('soccer_', '').replace(/_/g, ' ');
-    }
 };

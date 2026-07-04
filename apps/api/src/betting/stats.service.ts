@@ -19,6 +19,7 @@ export class StatsService {
         ['soccer_germany_bundesliga', 78], // Bundesliga
         ['soccer_italy_serie_a', 135], // Serie A
         ['soccer_france_ligue_one', 61], // Ligue 1
+        ['soccer_fifa_world_cup', 1], // FIFA World Cup
     ]);
     private competitionMap = new Map<string, string>([
         ['soccer_epl', 'PL'],
@@ -29,6 +30,10 @@ export class StatsService {
         ['soccer_uefa_champs_league', 'CL'],
         ['soccer_uefa_europa_league', 'EL'],
         ['soccer_uefa_europa_conference_league', 'ECL'],
+        ['soccer_fifa_world_cup', 'WC'],
+    ]);
+    private competitionSeasonMap = new Map<string, string>([
+        ['WC', '2026'],
     ]);
     private competitionTeamsCache = new Map<string, Array<{ id: number; name: string; shortName?: string; tla?: string }>>();
 
@@ -58,6 +63,25 @@ export class StatsService {
         'barcelona': '133739',
         'villarreal': '134739',
         'leeds united': '133635',
+    };
+
+    private readonly teamNameAliases: Record<string, string> = {
+        'usa': 'United States',
+        'united states': 'United States',
+        'south korea': 'Korea Republic',
+        'korea republic': 'Korea Republic',
+        'republic of korea': 'Korea Republic',
+        'ivory coast': "Côte d'Ivoire",
+        "cote d'ivoire": "Côte d'Ivoire",
+        'czechia': 'Czech Republic',
+        'czech republic': 'Czech Republic',
+        'bosnia and herzegovina': 'Bosnia-Herzegovina',
+        'bosnia herzegovina': 'Bosnia-Herzegovina',
+        'north macedonia': 'Macedonia',
+        'republic of ireland': 'Ireland',
+        'northern ireland': 'Northern Ireland',
+        'turkiye': 'Turkey',
+        'türkiye': 'Turkey',
     };
 
     private async fetchApi(endpoint: string, params: Record<string, string> = {}) {
@@ -129,13 +153,44 @@ export class StatsService {
         if (this.teamIdCache.has(teamName)) {
             return this.teamIdCache.get(teamName)!;
         }
+
+        for (const candidate of this.getTeamNameCandidates(teamName)) {
+            const teamId = await this.lookupTeamId(candidate);
+            if (teamId) {
+                this.teamIdCache.set(teamName, teamId);
+                return teamId;
+            }
+        }
+
+        return null;
+    }
+
+    private getTeamNameCandidates(teamName: string) {
+        const trimmed = teamName.trim();
+        const normalized = this.normalizeTeamName(trimmed);
+        const alias = this.teamNameAliases[normalized];
+        const candidates = new Set<string>([trimmed]);
+        if (alias) candidates.add(alias);
+        return Array.from(candidates);
+    }
+
+    private async lookupTeamId(teamName: string): Promise<number | null> {
         this.logger.debug(`Searching ID for team: ${teamName}`);
+        const searchResponse = await this.fetchApi('/teams', { search: teamName });
+        if (searchResponse && searchResponse.length > 0) {
+            const normalizedTarget = this.normalizeTeamName(teamName);
+            const exact = searchResponse.find((entry: any) =>
+                this.normalizeTeamName(entry.team?.name || '') === normalizedTarget
+                || this.normalizeTeamName(entry.team?.code || '') === normalizedTarget.replace(/\s+/g, ''),
+            );
+            return (exact || searchResponse[0]).team.id;
+        }
+
         const response = await this.fetchApi('/teams', { name: teamName });
         if (response && response.length > 0) {
-            const teamId = response[0].team.id;
-            this.teamIdCache.set(teamName, teamId);
-            return teamId;
+            return response[0].team.id;
         }
+
         return null;
     }
 
@@ -143,9 +198,15 @@ export class StatsService {
         const competitionCode = sportKey ? this.competitionMap.get(sportKey) : undefined;
         if (!competitionCode) return null;
 
-        let teams = this.competitionTeamsCache.get(competitionCode);
+        const season = this.competitionSeasonMap.get(competitionCode);
+        const cacheKey = season ? `${competitionCode}:${season}` : competitionCode;
+
+        let teams = this.competitionTeamsCache.get(cacheKey);
         if (!teams) {
-            const teamsResponse = await this.fetchFootballData(`/competitions/${competitionCode}/teams`);
+            const teamsResponse = await this.fetchFootballData(
+                `/competitions/${competitionCode}/teams`,
+                season ? { season } : {},
+            );
             teams = Array.isArray(teamsResponse?.teams)
                 ? teamsResponse.teams.map((t: any) => ({
                     id: t.id,
@@ -154,7 +215,7 @@ export class StatsService {
                     tla: t.tla,
                 }))
                 : [];
-            this.competitionTeamsCache.set(competitionCode, teams);
+            this.competitionTeamsCache.set(cacheKey, teams);
         }
 
         const normalized = this.normalizeTeamName(teamName);
@@ -477,8 +538,11 @@ export class StatsService {
         // Given current date Jan 2026, the season is 2025.
         // Ideally we fetch current active season for league, but hardcoding 2025 for now as we are in 2026 Jan.
         let season = currentYear;
-        // Logic: if month < 6 (June), season is previous year for most EU leagues.
-        if (new Date().getMonth() < 6) season = currentYear - 1;
+        if (sportKey === 'soccer_fifa_world_cup') {
+            season = 2026;
+        } else if (new Date().getMonth() < 6) {
+            season = currentYear - 1;
+        }
 
         const response = await this.fetchApi('/standings', {
             league: leagueId.toString(),

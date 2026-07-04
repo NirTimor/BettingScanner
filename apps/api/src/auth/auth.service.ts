@@ -7,6 +7,8 @@ const PASSWORD_KEYLEN = 64;
 const PASSWORD_DIGEST = 'sha512';
 const SESSION_DAYS = 30;
 const RESET_TOKEN_MINUTES = 30;
+const ADMIN_ROLE = 'ADMIN';
+const USER_ROLE = 'USER';
 
 @Injectable()
 export class AuthService {
@@ -33,6 +35,7 @@ export class AuthService {
                 email: normalizedEmail,
                 passwordHash: hash,
                 passwordSalt: salt,
+                role: this.getRoleForEmail(normalizedEmail),
             },
         });
 
@@ -40,7 +43,7 @@ export class AuthService {
 
         return {
             token: session.token,
-            user: { id: user.id, email: user.email },
+            user: { id: user.id, email: user.email, role: this.getEffectiveRole(user) },
         };
     }
 
@@ -67,7 +70,7 @@ export class AuthService {
 
         return {
             token: session.token,
-            user: { id: user.id, email: user.email },
+            user: { id: user.id, email: user.email, role: this.getEffectiveRole(user) },
         };
     }
 
@@ -85,7 +88,10 @@ export class AuthService {
             return null;
         }
 
-        return session.user;
+        return {
+            ...session.user,
+            role: this.getEffectiveRole(session.user),
+        };
     }
 
     async requestPasswordReset(email: string) {
@@ -166,5 +172,27 @@ export class AuthService {
     private normalizeEmail(email: string) {
         if (!email) return '';
         return email.trim().toLowerCase();
+    }
+
+    private getRoleForEmail(email: string) {
+        const adminEmails = (process.env.ADMIN_EMAILS || '')
+            .split(',')
+            .map(value => this.normalizeEmail(value))
+            .filter(Boolean);
+
+        return adminEmails.includes(email) ? ADMIN_ROLE : USER_ROLE;
+    }
+
+    canAccessAdmin(user: { email: string; role?: string | null }) {
+        if (this.getEffectiveRole(user) === ADMIN_ROLE) {
+            return true;
+        }
+
+        return process.env.NODE_ENV !== 'production' && !(process.env.ADMIN_EMAILS || '').trim();
+    }
+
+    private getEffectiveRole(user: { email: string; role?: string | null }) {
+        if (user.role === ADMIN_ROLE) return ADMIN_ROLE;
+        return this.getRoleForEmail(user.email);
     }
 }

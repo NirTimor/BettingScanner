@@ -1,0 +1,4 @@
+{
+  "installCommand": "cd ../.. && corepack enable && pnpm install",
+  "buildCommand": "cd ../.. && pnpm --filter web build"
+}

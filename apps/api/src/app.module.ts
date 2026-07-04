@@ -4,6 +4,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { BettingModule } from './betting/betting.module';
 import { AuthModule } from './auth/auth.module';
 import { ProfileModule } from './profile/profile.module';
+import { HealthController } from './health.controller';
 
 @Module({
     imports: [
@@ -13,6 +14,7 @@ import { ProfileModule } from './profile/profile.module';
         AuthModule,
         ProfileModule,
     ],
+    controllers: [HealthController],
     providers: [],
     exports: [],
 })

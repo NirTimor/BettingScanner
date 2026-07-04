@@ -1,7 +1,8 @@
-import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
+import { CanActivate, ExecutionContext, ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { IS_PUBLIC_KEY } from './public.decorator';
 import { AuthService } from './auth.service';
+import { ADMIN_ONLY_KEY } from './admin.decorator';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
@@ -26,7 +27,20 @@ export class AuthGuard implements CanActivate {
             throw new UnauthorizedException('Invalid token');
         }
 
-        request.user = { id: user.id, email: user.email };
+        const isAdminOnly = this.reflector.getAllAndOverride<boolean>(ADMIN_ONLY_KEY, [
+            context.getHandler(),
+            context.getClass(),
+        ]);
+
+        request.user = {
+            id: user.id,
+            email: user.email,
+            role: this.authService.canAccessAdmin(user) ? 'ADMIN' : 'USER',
+        };
+        if (isAdminOnly && !this.authService.canAccessAdmin(user)) {
+            throw new ForbiddenException('Admin access required');
+        }
+
         return true;
     }
 

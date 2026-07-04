@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { ScannerService } from './scanner.service';
 import { StatsService } from './stats.service';
 import { NotificationsService } from './notifications.service';
+import { AdminOnly } from '../auth/admin.decorator';
 @Controller('betting')
 export class BettingController {
     constructor(
@@ -51,6 +52,7 @@ export class BettingController {
     }
 
     @Post('results')
+    @AdminOnly()
     async saveResult(
         @Body()
         body: {
@@ -255,17 +257,20 @@ export class BettingController {
     }
 
     @Post('scan')
+    @AdminOnly()
     async triggerScan() {
         // For testing purposes
         return this.scanner.scanDaily();
     }
 
     @Post('results/auto')
+    @AdminOnly()
     async autoResults(@Query('date') date?: string) {
         return this.scanner.updateResultsForDate(date);
     }
 
     @Post('results/auto-range')
+    @AdminOnly()
     async autoResultsRange(@Query('days') days?: string) {
         const parsedDays = Number.parseInt(days || '7', 10);
         const windowDays = Number.isFinite(parsedDays) ? Math.min(Math.max(parsedDays, 1), 60) : 7;
@@ -283,11 +288,13 @@ export class BettingController {
     }
 
     @Post('notify')
+    @AdminOnly()
     async notify(@Query('date') date?: string) {
         return this.notifications.sendDailyUpdates(date);
     }
 
     @Post('results/clear')
+    @AdminOnly()
     async clearResults(@Query('date') date?: string) {
         const { startOfDay, endOfDay } = this.getDayBounds(date);
         const result = await this.prisma.recommendation.updateMany({
@@ -316,16 +323,19 @@ export class BettingController {
             },
         });
 
-        const liveScores: Record<string, { homeScore: number; awayScore: number; status: string }> = {};
-        for (const rec of recommendations) {
-            if (!rec.homeTeam || !rec.awayTeam) continue;
+        const liveEntries = await Promise.all(recommendations.map(async (rec) => {
+            if (!rec.homeTeam || !rec.awayTeam) return null;
             const live = await this.scanner.getLiveScoreForMatch(rec.homeTeam, rec.awayTeam);
             if (live) {
-                liveScores[rec.id] = live;
+                return [rec.id, live] as const;
             }
-        }
+            return null;
+        }));
 
-        return liveScores;
+        return liveEntries.reduce<Record<string, { homeScore: number; awayScore: number; status: string }>>((acc, entry) => {
+            if (entry) acc[entry[0]] = entry[1];
+            return acc;
+        }, {});
     }
 
     @Get('recent-results')

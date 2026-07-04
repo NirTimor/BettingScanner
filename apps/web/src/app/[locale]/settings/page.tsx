@@ -12,18 +12,7 @@ import { getInitials } from '@/lib/profile-utils';
 const MAX_AVATAR_SIZE_BYTES = 1024 * 1024; // 1MB
 const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png'];
 
-const SPORT_KEYS = [
-    'soccer_epl',
-    'soccer_spain_la_liga',
-    'soccer_germany_bundesliga',
-    'soccer_italy_serie_a',
-    'soccer_france_ligue_one',
-    'soccer_uefa_champs_league',
-    'soccer_uefa_europa_league',
-    'soccer_uefa_europa_conference_league',
-    'soccer_israel_ligat_ha_al',
-    'soccer_israel_ligat_al',
-];
+import { SPORT_KEYS } from '@/lib/sport-keys';
 
 export default function SettingsPage() {
     const t = useTranslations('Settings');

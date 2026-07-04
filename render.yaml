@@ -1,0 +1,28 @@
+# Render Blueprint — https://render.com/docs/blueprint-spec
+# Deploy: Dashboard → New → Blueprint → connect this repo
+
+services:
+  - type: web
+    name: betting-scanner-api
+    runtime: node
+    region: frankfurt
+    plan: free
+    rootDir: .
+    buildCommand: corepack enable && pnpm install && pnpm --filter api exec prisma generate && pnpm --filter api build && pnpm --filter api exec prisma migrate deploy
+    startCommand: pnpm --filter api start:prod
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        value: file:./prisma/dev.db
+      - key: THE_ODDS_API_KEY
+        sync: false
+      - key: API_FOOTBALL_KEY
+        sync: false
+      - key: FOOTBALL_DATA_TOKEN
+        sync: false
+      - key: ADMIN_EMAILS
+        sync: false
+      - key: ALLOWED_ORIGINS
+        sync: false

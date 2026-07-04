@@ -8,6 +8,8 @@ import { BettingCard } from '@/components/betting/betting-card';
 import Sparkline from '@/components/Sparkline';
 import TopBar from '@/components/TopBar';
 import { API_URL, TOKEN_KEY } from '@/lib/api-config';
+import { formatLongDate } from '@/lib/date-format';
+import { WORLD_CUP_SPORT_KEY } from '@/lib/sport-keys';
 import { getLeagueLabelFromSportKey, translateEventTitle, translateLeagueLabel, translateSelection, translateTeamName } from '@/lib/team-translations';
 
 interface Recommendation {
@@ -60,7 +62,8 @@ export default function BettingPage() {
     const [loading, setLoading] = useState(true);
     const [scanning, setScanning] = useState(false);
     const [openInfoId, setOpenInfoId] = useState<string | null>(null);
-    const [scanStatus, setScanStatus] = useState<'success' | 'error' | null>(null);
+    const [scanStatus, setScanStatus] = useState<'success' | 'error' | 'forbidden' | null>(null);
+    const [isAdmin, setIsAdmin] = useState(false);
     const [recentById, setRecentById] = useState<Record<string, {
         homeRecent?: RecentResults | null;
         awayRecent?: RecentResults | null;
@@ -160,12 +163,31 @@ export default function BettingPage() {
         }
     };
 
+    const fetchCurrentUser = async () => {
+        try {
+            const res = await fetchWithAuth(`${API_URL}/auth/me`);
+            if (!res?.ok) return;
+            const data = await res.json();
+            setIsAdmin(data.user?.role === 'ADMIN');
+        } catch (error) {
+            console.error('Failed to fetch current user', error);
+        }
+    };
+
     const handleScan = async () => {
         try {
             setScanning(true);
             setScanStatus(null);
             const res = await fetchWithAuth(`${API_URL}/betting/scan`, { method: 'POST' });
-            if (!res || !res.ok) {
+            if (!res) {
+                setScanStatus('error');
+                return;
+            }
+            if (res.status === 403) {
+                setScanStatus('forbidden');
+                return;
+            }
+            if (!res.ok) {
                 setScanStatus('error');
                 return;
             }
@@ -235,6 +257,7 @@ export default function BettingPage() {
 
     useEffect(() => {
         if (!authReady) return;
+        fetchCurrentUser();
         fetchRecommendations();
         fetchAccuracy();
         fetchLiveScores();
@@ -351,6 +374,11 @@ export default function BettingPage() {
         });
     }, [recommendations, searchTerm, selectedSport, selectedBookmaker, minConfidence, showGradedOnly, showHitsOnly, onlyPreferred, preferredSports, locale]);
 
+    const hasWorldCupRecommendations = useMemo(
+        () => recommendations.some(rec => rec.sportKey === WORLD_CUP_SPORT_KEY),
+        [recommendations],
+    );
+
     const handleResetFilters = () => {
         setSearchTerm('');
         setSelectedSport('all');
@@ -375,7 +403,16 @@ export default function BettingPage() {
             <div className="rounded-3xl border border-zinc-200/70 dark:border-zinc-800/80 bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-zinc-900 dark:via-zinc-900 dark:to-zinc-800 px-6 py-5 mb-8 shadow-sm">
                 <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
                     <div>
-                        <div className="flex items-center gap-3 mb-2">
+                        <div className="flex items-center gap-3 mb-2 flex-wrap">
+                            {hasWorldCupRecommendations ? (
+                                <button
+                                    type="button"
+                                    onClick={() => setSelectedSport(WORLD_CUP_SPORT_KEY)}
+                                    className="inline-flex items-center gap-2 rounded-full border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/30 px-3 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-200 hover:bg-emerald-100 dark:hover:bg-emerald-900/50"
+                                >
+                                    {t('worldCupBadge')}
+                                </button>
+                            ) : null}
                             <span className="inline-flex items-center gap-2 rounded-full border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/30 px-3 py-1 text-xs font-semibold text-blue-700 dark:text-blue-200">
                                 <span className="h-2 w-2 rounded-full bg-emerald-500" />
                                 {scanning ? t('statusScanning') : t('statusLive')}
@@ -402,17 +439,16 @@ export default function BettingPage() {
                         </p>
                         <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
                             {t('todayDate', {
-                                date: new Date().toLocaleDateString(locale === 'he' ? 'he-IL' : 'en-GB', {
-                                    weekday: 'long',
-                                    year: 'numeric',
-                                    month: 'long',
-                                    day: 'numeric',
-                                }),
+                                date: formatLongDate(new Date(), locale),
                             })}
                         </p>
                         {scanStatus === 'success' ? (
                             <p className="mt-2 text-sm text-emerald-600 dark:text-emerald-400">
                                 {t('scanSuccess')}
+                            </p>
+                        ) : scanStatus === 'forbidden' ? (
+                            <p className="mt-2 text-sm text-red-600 dark:text-red-400">
+                                {t('scanAdminRequired')}
                             </p>
                         ) : scanStatus === 'error' ? (
                             <p className="mt-2 text-sm text-red-600 dark:text-red-400">
@@ -422,13 +458,15 @@ export default function BettingPage() {
                     </div>
 
                     <div className="flex flex-wrap gap-3 items-center">
-                        <button
-                            onClick={handleScan}
-                            disabled={scanning}
-                            className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 dark:focus:ring-offset-zinc-900"
-                        >
-                            {scanning ? t('scanning') : t('runScan')}
-                        </button>
+                        {isAdmin ? (
+                            <button
+                                onClick={handleScan}
+                                disabled={scanning}
+                                className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 dark:focus:ring-offset-zinc-900"
+                            >
+                                {scanning ? t('scanning') : t('runScan')}
+                            </button>
+                        ) : null}
                         <button
                             type="button"
                             onClick={handleRefresh}
@@ -643,6 +681,13 @@ export default function BettingPage() {
                                 ) : null}
                             </div>
                             <div className="flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setSelectedSport(WORLD_CUP_SPORT_KEY)}
+                                    className={`rounded-lg px-3 py-2 text-sm font-medium border ${selectedSport === WORLD_CUP_SPORT_KEY ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-200' : 'border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-200'}`}
+                                >
+                                    {t('worldCupOnly')}
+                                </button>
                                 <button
                                     onClick={handleResetFilters}
                                     className="text-sm font-medium text-blue-600 hover:text-blue-700"

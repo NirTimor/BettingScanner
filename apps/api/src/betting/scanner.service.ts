@@ -4,6 +4,9 @@ import { PrismaService } from '../prisma/prisma.service';
 import { TheOddsApiService, OddsEvent } from './the-odds-api.service';
 import { StatsService } from './stats.service';
 import { LlmService, LlmPrediction } from './llm.service';
+import { DEFAULT_ODDS_REGIONS, REGIONS_BY_SPORT, SCAN_SPORT_KEYS } from './sport-keys';
+
+const SCAN_LEAGUE_CONCURRENCY = 3;
 
 @Injectable()
 export class ScannerService {
@@ -35,29 +38,15 @@ export class ScannerService {
         });
 
         try {
-            const sportKeys = [
-                'soccer_epl',
-                'soccer_germany_bundesliga',
-                'soccer_italy_serie_a',
-                'soccer_spain_la_liga',
-                'soccer_france_ligue_one',
-                'soccer_israel_ligat_ha_al',
-                'soccer_israel_ligat_al',
-                'soccer_uefa_champs_league',
-                'soccer_uefa_europa_league',
-                'soccer_uefa_europa_conference_league',
-            ];
+            const sportKeys = SCAN_SPORT_KEYS;
 
             const recommendations: any[] = [];
 
-            const regionsBySport: Record<string, string> = {
-                soccer_israel_ligat_ha_al: 'us,eu,uk,au',
-                soccer_israel_ligat_al: 'us,eu,uk,au',
-            };
+            const regionsBySport = REGIONS_BY_SPORT;
 
-            for (const sportKey of sportKeys) {
+            const leagueResults = await this.concurrentMap(sportKeys, SCAN_LEAGUE_CONCURRENCY, async (sportKey) => {
                 try {
-                    const regions = regionsBySport[sportKey] || 'eu,uk';
+                    const regions = regionsBySport[sportKey] || DEFAULT_ODDS_REGIONS;
                     const odds = await this.oddsService.getOdds(sportKey, regions);
                     this.logger.log(`Fetched ${odds.length} events for ${sportKey}`);
                     const upcomingEvents = this.filterUpcomingEvents(odds);
@@ -68,22 +57,23 @@ export class ScannerService {
                     if (upcomingEvents.length === 0) {
                         this.logger.warn(`No upcoming events for ${sportKey}`);
                     }
-                    const leagueRecommendations = await this.analyzeOdds(upcomingEvents);
-                    recommendations.push(...leagueRecommendations);
+                    return this.analyzeOdds(upcomingEvents);
                 } catch (error) {
                     this.logger.warn(`Skipping ${sportKey} due to fetch error: ${error}`);
+                    return [];
                 }
-            }
+            });
+            recommendations.push(...leagueResults.flat());
 
             // 3. Save Recommendations
             this.logger.log(`Saving ${recommendations.length} recommendations...`);
 
-            for (const rec of recommendations) {
-                await this.prisma.recommendation.create({
-                    data: {
+            if (recommendations.length > 0) {
+                await this.prisma.recommendation.createMany({
+                    data: recommendations.map(rec => ({
                         ...rec,
                         scanId: scan.id,
-                    },
+                    })),
                 });
             }
 
@@ -176,13 +166,17 @@ export class ScannerService {
             const marketFavorite = this.getMarketFavorite(marketImplied, homeTeam, awayTeam);
             const isHeavyFavorite = marketFavorite.impliedProb >= 0.6;
 
-            const homeRecent = await this.getCachedRecentResults(recentResultsCache, homeTeam, event.sport_key);
-            const awayRecent = await this.getCachedRecentResults(recentResultsCache, awayTeam, event.sport_key);
-            const homeForm = homeRecent?.form || await this.getCachedForm(formCache, homeTeam);
-            const awayForm = awayRecent?.form || await this.getCachedForm(formCache, awayTeam);
-            const h2hStr = await this.getCachedH2h(h2hCache, h2hKey, homeTeam, awayTeam);
-            const homeInjuries = await this.getCachedInjuries(injuriesCache, homeTeam);
-            const awayInjuries = await this.getCachedInjuries(injuriesCache, awayTeam);
+            const [homeRecent, awayRecent, h2hStr, homeInjuries, awayInjuries] = await Promise.all([
+                this.getCachedRecentResults(recentResultsCache, homeTeam, event.sport_key),
+                this.getCachedRecentResults(recentResultsCache, awayTeam, event.sport_key),
+                this.getCachedH2h(h2hCache, h2hKey, homeTeam, awayTeam),
+                this.getCachedInjuries(injuriesCache, homeTeam),
+                this.getCachedInjuries(injuriesCache, awayTeam),
+            ]);
+            const [homeForm, awayForm] = await Promise.all([
+                homeRecent?.form || this.getCachedForm(formCache, homeTeam),
+                awayRecent?.form || this.getCachedForm(formCache, awayTeam),
+            ]);
             const llmPrediction = await this.getLlmPrediction(event, homeForm, awayForm, h2hStr, homeInjuries, awayInjuries, selectionStats);
             let bestCandidate: any = null;
             let bestConfidence = -1;
@@ -525,6 +519,26 @@ export class ScannerService {
             const commenceTime = new Date(event.commence_time);
             return Number.isFinite(commenceTime.getTime()) && commenceTime > now;
         });
+    }
+
+    private async concurrentMap<T, R>(
+        items: T[],
+        limit: number,
+        worker: (item: T, index: number) => Promise<R>,
+    ) {
+        const results = new Array<R>(items.length);
+        let nextIndex = 0;
+        const workerCount = Math.min(Math.max(limit, 1), items.length);
+
+        await Promise.all(Array.from({ length: workerCount }, async () => {
+            while (nextIndex < items.length) {
+                const currentIndex = nextIndex;
+                nextIndex += 1;
+                results[currentIndex] = await worker(items[currentIndex], currentIndex);
+            }
+        }));
+
+        return results;
     }
 
     private getOutcome(homeScore: number, awayScore: number) {

@@ -1,7 +1,7 @@
 {
     "Betting": {
         "title": "המלצות הימורי ערך",
-        "description": "הזדמנויות הימורים יומיות מהליגות הבכירות שנסרקו על ידי AI.",
+        "description": "הזדמנויות הימורים יומיות מהליגות הבכירות וממונדיאל 2026 שנסרקו על ידי AI.",
         "runScan": "הפעל סריקה חדשה",
         "scanning": "סורק...",
         "noResults": "לא נמצאו המלצות פעילות. נסה להפעיל סריקה חדשה.",
@@ -50,6 +50,7 @@
         "close": "סגירה",
         "scanSuccess": "הסריקה בוצעה בהצלחה.",
         "scanFailed": "הסריקה נכשלה מסיבה כלשהי, נסו שוב מאוחר יותר.",
+        "scanAdminRequired": "רק משתמשי admin יכולים להריץ סריקה. הוסיפו את האימייל שלכם ל-ADMIN_EMAILS בקובץ .env של ה-API.",
         "accuracyToday": "דיוק היום: {hits}/{graded} פגיעות ({hitRate}%)",
         "home": "בית",
         "away": "חוץ",
@@ -86,6 +87,8 @@
         "resultSaved": "נשמר!",
         "noMatchesForFilters": "אין התאמות לפילטרים שבחרת.",
         "resetFiltersToSeeAll": "אפס פילטרים כדי לראות את כל ההמלצות.",
+        "worldCupOnly": "מונדיאל בלבד",
+        "worldCupBadge": "מונדיאל",
         "todayDate": "תאריך: {date}"
     },
     "Auth": {

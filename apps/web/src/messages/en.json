@@ -1,7 +1,7 @@
 {
     "Betting": {
         "title": "Value Bet Recommendations",
-        "description": "Daily AI-scanned betting opportunities from top leagues.",
+        "description": "Daily AI-scanned betting opportunities from top leagues and the FIFA World Cup.",
         "runScan": "Run New Scan",
         "scanning": "Scanning...",
         "noResults": "No active recommendations found. Try running a new scan.",
@@ -50,6 +50,7 @@
         "close": "Close",
         "scanSuccess": "Scan completed successfully.",
         "scanFailed": "Scan failed. Please try again later.",
+        "scanAdminRequired": "Only admin users can run scans. Add your email to ADMIN_EMAILS in the API .env file.",
         "accuracyToday": "Accuracy today: {hits}/{graded} hits ({hitRate}%)",
         "home": "Home",
         "away": "Away",
@@ -86,6 +87,8 @@
         "resultSaved": "Saved!",
         "noMatchesForFilters": "No recommendations match your filters.",
         "resetFiltersToSeeAll": "Reset filters to see all recommendations.",
+        "worldCupOnly": "World Cup only",
+        "worldCupBadge": "World Cup",
         "todayDate": "Date: {date}"
     },
     "Auth": {
