@@ -9,12 +9,14 @@ services:
     region: frankfurt
     plan: free
     rootDir: .
-    buildCommand: corepack enable && corepack prepare pnpm@8.15.0 --activate && pnpm install --no-frozen-lockfile && pnpm --filter api exec prisma generate && pnpm --filter api build && pnpm --filter api exec prisma migrate deploy
+    buildCommand: npm install -g pnpm@8.15.0 && pnpm install --no-frozen-lockfile && pnpm --filter api exec prisma generate && pnpm --filter api build && pnpm --filter api exec prisma migrate deploy
     startCommand: pnpm --filter api start:prod
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV
         value: production
+      - key: NODE_VERSION
+        value: 20.19.0
       - key: DATABASE_URL
         value: file:./apps/api/prisma/dev.db
       - key: THE_ODDS_API_KEY
