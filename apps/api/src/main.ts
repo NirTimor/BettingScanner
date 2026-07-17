@@ -20,13 +20,21 @@ async function bootstrap() {
         .map(origin => origin.trim())
         .filter(Boolean);
 
+    const isAllowedOrigin = (origin?: string) => {
+        if (!origin) return true;
+        if (allowedOrigins.includes('*') || allowedOrigins.includes(origin)) return true;
+        if (origin.endsWith('.vercel.app')) return true;
+        return false;
+    };
+
     app.enableCors({
         origin: (origin, callback) => {
-            if (!origin || allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
+            if (isAllowedOrigin(origin)) {
                 callback(null, true);
                 return;
             }
-            callback(null, allowedOrigins);
+            console.warn(`Blocked CORS origin: ${origin}`);
+            callback(new Error(`Origin ${origin} not allowed by CORS`), false);
         },
         credentials: true,
     });
