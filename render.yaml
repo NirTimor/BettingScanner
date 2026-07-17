@@ -10,7 +10,7 @@ services:
     plan: free
     rootDir: .
     buildCommand: npm install -g pnpm@8.15.0 && pnpm install --no-frozen-lockfile && pnpm --filter api exec prisma generate && pnpm --filter api build && pnpm --filter api exec prisma migrate deploy
-    startCommand: pnpm --filter api start:prod
+    startCommand: cd apps/api && node dist/main
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV
