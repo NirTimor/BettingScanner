@@ -27,8 +27,8 @@ Your repo: `https://github.com/NirTimor/BettingScanner`
 | Setting | Value |
 |---------|-------|
 | Root Directory | *(leave empty / repo root)* |
-| Build Command | `npm install -g pnpm@8.15.0 && pnpm install --no-frozen-lockfile && pnpm --filter api exec prisma generate && pnpm --filter api build && pnpm --filter api exec prisma migrate deploy` |
-| Start Command | `pnpm --filter api start:prod` |
+| Build Command | `npm install -g pnpm@8.15.0 && pnpm install --no-frozen-lockfile --prod=false && pnpm --filter api exec prisma generate && pnpm --filter api build && pnpm --filter api exec prisma migrate deploy` |
+| Start Command | `cd apps/api && node dist/main` |
 
 **Do not** use `pnpm build` / `turbo` — that builds the whole monorepo and fails on Render free.
 
