@@ -1,5 +1,6 @@
 # Render Blueprint — https://render.com/docs/blueprint-spec
 # Deploy: Dashboard → New → Blueprint → connect this repo
+# Or update an existing Web Service Build/Start commands to match below.
 
 services:
   - type: web
@@ -8,14 +9,14 @@ services:
     region: frankfurt
     plan: free
     rootDir: .
-    buildCommand: corepack enable && pnpm install && pnpm --filter api exec prisma generate && pnpm --filter api build && pnpm --filter api exec prisma migrate deploy
+    buildCommand: corepack enable && corepack prepare pnpm@8.15.0 --activate && pnpm install --no-frozen-lockfile && pnpm --filter api exec prisma generate && pnpm --filter api build && pnpm --filter api exec prisma migrate deploy
     startCommand: pnpm --filter api start:prod
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV
         value: production
       - key: DATABASE_URL
-        value: file:./prisma/dev.db
+        value: file:./apps/api/prisma/dev.db
       - key: THE_ODDS_API_KEY
         sync: false
       - key: API_FOOTBALL_KEY

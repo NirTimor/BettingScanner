@@ -21,17 +21,31 @@ This app is a monorepo with:
 Your repo: `https://github.com/NirTimor/BettingScanner`
 
 ### B. Deploy API on Render (free)
-1. Go to [render.com](https://render.com) → Sign up with GitHub
-2. **New** → **Blueprint** → select `BettingScanner` repo
-3. Render reads `render.yaml` automatically
-4. Fill secret env vars when prompted:
-   - `THE_ODDS_API_KEY`
-   - `API_FOOTBALL_KEY`
-   - `FOOTBALL_DATA_TOKEN` (recommended for World Cup stats)
-   - `ADMIN_EMAILS` = your login email
-   - `ALLOWED_ORIGINS` = leave empty for now, update after Vercel deploy
-5. Click **Apply** → wait for deploy (~5 min)
-6. Copy your API URL, e.g. `https://betting-scanner-api.onrender.com`
+
+**If you already created a Web Service** (like `BettingScanner`), fix Settings → Build & Deploy:
+
+| Setting | Value |
+|---------|-------|
+| Root Directory | *(leave empty / repo root)* |
+| Build Command | `corepack enable && corepack prepare pnpm@8.15.0 --activate && pnpm install --no-frozen-lockfile && pnpm --filter api exec prisma generate && pnpm --filter api build && pnpm --filter api exec prisma migrate deploy` |
+| Start Command | `pnpm --filter api start:prod` |
+
+**Do not** use `pnpm build` / `turbo` — that builds the whole monorepo and fails on Render free.
+
+Env vars:
+- `THE_ODDS_API_KEY`
+- `API_FOOTBALL_KEY`
+- `FOOTBALL_DATA_TOKEN` (recommended for World Cup stats)
+- `ADMIN_EMAILS` = your login email
+- `DATABASE_URL` = `file:./apps/api/prisma/dev.db`
+- `ALLOWED_ORIGINS` = leave empty for now, update after Vercel deploy
+- `NODE_ENV` = `production`
+
+Then **Manual Deploy → Clear build cache & deploy**.
+
+Alternative: **New → Blueprint** → select repo (reads `render.yaml`).
+
+Copy your API URL, e.g. `https://bettingscanner.onrender.com`
 
 ### C. Deploy Web on Vercel (free)
 1. Go to [vercel.com](https://vercel.com) → Sign up with GitHub
