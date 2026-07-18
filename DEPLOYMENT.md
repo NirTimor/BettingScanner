@@ -88,25 +88,33 @@ Free Render sleeps → use [cron-job.org](https://cron-job.org):
 
 Prisma Migrate cannot talk to Turso over HTTP. Use this one-time setup:
 
-### 1) Create Turso DB
-1. Sign up at [turso.tech](https://turso.tech)
-2. Install CLI (Windows PowerShell):
-   ```powershell
-   irm get.tur.so/install.ps1 | iex
-   ```
-3. Login + create DB:
-   ```bash
-   turso auth login
-   turso db create betting-scanner
-   turso db show betting-scanner --url
-   turso db tokens create betting-scanner
-   ```
+### 1) Create Turso DB (no CLI required)
+1. Sign up at [turso.tech](https://turso.tech) → create a database (e.g. `betting-scanner`)
+2. In the dashboard, copy:
+   - Database URL (`libsql://...`)
+   - Auth Token
 
-### 2) Apply schema once
-From the repo root:
+### 2) Apply schema once (from this repo)
+Put the values in `apps/api/.env`:
+```
+TURSO_DATABASE_URL=libsql://...
+TURSO_AUTH_TOKEN=...
+DATABASE_URL=file:./dev.db
+```
+
+Then run:
 ```bash
+cd apps/api
+node scripts/init-turso.mjs
+```
+
+Optional CLI (WSL / Linux / macOS only):
+```bash
+curl -sSfL https://get.tur.so/install.sh | bash
 turso db shell betting-scanner < apps/api/prisma/turso-init.sql
 ```
+
+Windows note: the old `irm get.tur.so/install.ps1` link is broken — prefer the Node script above.
 
 ### 3) Set on Render → Environment
 ```
