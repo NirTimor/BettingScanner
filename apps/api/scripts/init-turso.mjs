@@ -1,18 +1,17 @@
 /**
  * Apply apps/api/prisma/turso-init.sql to a Turso database.
  *
- * Usage (from repo root):
- *   set TURSO_DATABASE_URL=libsql://...
- *   set TURSO_AUTH_TOKEN=...
- *   node apps/api/scripts/init-turso.mjs
- *
- * Or from apps/api with .env already filled:
+ * Usage (from apps/api):
  *   node scripts/init-turso.mjs
  */
 
-const fs = require('fs');
-const path = require('path');
-const { createClient } = require('@libsql/client');
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { createClient } from '@libsql/client';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 function loadEnvFile(filePath) {
     if (!fs.existsSync(filePath)) return;
