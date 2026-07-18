@@ -76,11 +76,30 @@ Copy your API URL, e.g. `https://bettingscanner.onrender.com`
 3. Run scan (admin only — your email must be in `ADMIN_EMAILS`)
 4. Check World Cup recommendations appear
 
-### F. Daily cron (optional)
-Free Render sleeps → use [cron-job.org](https://cron-job.org):
-- `POST https://betting-scanner-api.onrender.com/betting/scan`
-- Header: `Authorization: Bearer YOUR_TOKEN`
-- Schedule: daily 08:00
+### F. Daily cron (free — cron-job.org)
+
+Render free sleeps, so in-app `@Cron` is unreliable. Use free [cron-job.org](https://cron-job.org):
+
+1. Set on Render Environment a long random secret:
+   ```
+   CRON_SECRET=put-a-long-random-string-here
+   ```
+2. Redeploy API.
+3. On cron-job.org create 2 jobs (both FREE):
+
+**Job 1 — daily scan**
+- URL: `https://bettingscanner.onrender.com/betting/scan`
+- Method: `POST`
+- Header: `x-cron-secret: YOUR_CRON_SECRET`
+- Schedule: every day at 08:00 (your timezone)
+
+**Job 2 — daily results**
+- URL: `https://bettingscanner.onrender.com/betting/results/auto`
+- Method: `POST`
+- Header: `x-cron-secret: YOUR_CRON_SECRET`
+- Schedule: every day at 23:30
+
+No paid plan needed. No session token needed.
 
 ---
 

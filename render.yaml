@@ -23,6 +23,8 @@ services:
         sync: false
       - key: TURSO_AUTH_TOKEN
         sync: false
+      - key: CRON_SECRET
+        sync: false
       - key: THE_ODDS_API_KEY
         sync: false
       - key: API_FOOTBALL_KEY
