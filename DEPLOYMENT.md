@@ -27,7 +27,7 @@ Your repo: `https://github.com/NirTimor/BettingScanner`
 | Setting | Value |
 |---------|-------|
 | Root Directory | *(leave empty / repo root)* |
-| Build Command | `npm install -g pnpm@8.15.0 && pnpm install --no-frozen-lockfile --prod=false && pnpm --filter api exec prisma generate && pnpm --filter api build && pnpm --filter api exec prisma migrate deploy` |
+| Build Command | `npm install -g pnpm@8.15.0 && pnpm install --no-frozen-lockfile --prod=false && pnpm --filter api exec prisma generate && pnpm --filter api build` |
 | Start Command | `cd apps/api && node dist/main` |
 
 **Do not** use `pnpm build` / `turbo` — that builds the whole monorepo and fails on Render free.
@@ -37,8 +37,10 @@ Env vars:
 - `API_FOOTBALL_KEY`
 - `FOOTBALL_DATA_TOKEN` (recommended for World Cup stats)
 - `ADMIN_EMAILS` = your login email
-- `DATABASE_URL` = `file:./apps/api/prisma/dev.db`
-- `ALLOWED_ORIGINS` = leave empty for now, update after Vercel deploy
+- `DATABASE_URL` = `file:./dev.db` (used only for Prisma CLI locally / build)
+- `TURSO_DATABASE_URL` = your Turso URL (production persistence)
+- `TURSO_AUTH_TOKEN` = your Turso auth token
+- `ALLOWED_ORIGINS` = your Vercel URL
 - `NODE_ENV` = `production`
 
 Then **Manual Deploy → Clear build cache & deploy**.
@@ -82,37 +84,61 @@ Free Render sleeps → use [cron-job.org](https://cron-job.org):
 
 ---
 
-## Step 1: Database (Turso)
+## Step 1: Database (Turso) — persistent production DB
 
-1. Create a Turso account and database.
-2. Get the connection URL.
-3. Set `DATABASE_URL` on the API host to your Turso URL.
-4. Run migrations once:
-   ```bash
-   cd apps/api
-   npx prisma migrate deploy
+Prisma Migrate cannot talk to Turso over HTTP. Use this one-time setup:
+
+### 1) Create Turso DB
+1. Sign up at [turso.tech](https://turso.tech)
+2. Install CLI (Windows PowerShell):
+   ```powershell
+   irm get.tur.so/install.ps1 | iex
    ```
+3. Login + create DB:
+   ```bash
+   turso auth login
+   turso db create betting-scanner
+   turso db show betting-scanner --url
+   turso db tokens create betting-scanner
+   ```
+
+### 2) Apply schema once
+From the repo root:
+```bash
+turso db shell betting-scanner < apps/api/prisma/turso-init.sql
+```
+
+### 3) Set on Render → Environment
+```
+TURSO_DATABASE_URL=libsql://betting-scanner-....turso.io
+TURSO_AUTH_TOKEN=your_token
+DATABASE_URL=file:./dev.db
+```
+
+Then redeploy the API. Logs should show: `Connected to Turso database`.
+
+Local development keeps using SQLite (`DATABASE_URL=file:./dev.db`) and does **not** need Turso vars.
 
 ## Step 2: Deploy API (Render)
 
 1. Connect your GitHub repo to Render.
-2. Create a **Web Service**:
-   - Root directory: `apps/api`
-   - Build: `pnpm install && pnpm build && npx prisma migrate deploy`
-   - Start: `node dist/main`
+2. Create a **Web Service** (or update existing):
+   - Build: `npm install -g pnpm@8.15.0 && pnpm install --no-frozen-lockfile --prod=false && pnpm --filter api exec prisma generate && pnpm --filter api build`
+   - Start: `cd apps/api && node dist/main`
 3. Set environment variables:
 
 ```env
 THE_ODDS_API_KEY=your_key
 API_FOOTBALL_KEY=your_key
 FOOTBALL_DATA_TOKEN=your_token
-DATABASE_URL=your_turso_url
+DATABASE_URL=file:./dev.db
+TURSO_DATABASE_URL=libsql://...
+TURSO_AUTH_TOKEN=...
 ADMIN_EMAILS=your@email.com
 NODE_ENV=production
-PORT=3001
 ```
 
-4. Note your API URL, e.g. `https://betting-scanner-api.onrender.com`
+4. Note your API URL, e.g. `https://bettingscanner.onrender.com`
 
 ## Step 3: Deploy Web (Vercel)
 
@@ -121,7 +147,7 @@ PORT=3001
 3. Environment variables:
 
 ```env
-NEXT_PUBLIC_API_URL=https://betting-scanner-api.onrender.com
+NEXT_PUBLIC_API_URL=https://bettingscanner.onrender.com
 NEXT_PUBLIC_SITE_URL=https://your-domain.vercel.app
 ```
 

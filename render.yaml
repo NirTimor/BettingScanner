@@ -9,7 +9,7 @@ services:
     region: frankfurt
     plan: free
     rootDir: .
-    buildCommand: npm install -g pnpm@8.15.0 && pnpm install --no-frozen-lockfile --prod=false && pnpm --filter api exec prisma generate && pnpm --filter api build && pnpm --filter api exec prisma migrate deploy
+    buildCommand: npm install -g pnpm@8.15.0 && pnpm install --no-frozen-lockfile --prod=false && pnpm --filter api exec prisma generate && pnpm --filter api build
     startCommand: cd apps/api && node dist/main
     healthCheckPath: /health
     envVars:
@@ -19,6 +19,10 @@ services:
         value: 20.19.0
       - key: DATABASE_URL
         value: file:./dev.db
+      - key: TURSO_DATABASE_URL
+        sync: false
+      - key: TURSO_AUTH_TOKEN
+        sync: false
       - key: THE_ODDS_API_KEY
         sync: false
       - key: API_FOOTBALL_KEY
